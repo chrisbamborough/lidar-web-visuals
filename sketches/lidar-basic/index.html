@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>LiDAR Basic</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="ui">
+      <input id="addr" placeholder="http://192.168.86.28" />
+      <button id="connect">Connect</button>
+      <span id="stats">idle</span>
+      <div id="err"></div>
+    </div>
+    <video id="video" playsinline autoplay muted></video>
+    <canvas id="three"></canvas>
+
+    <script type="module" src="main.js"></script>
+  </body>
+</html>
