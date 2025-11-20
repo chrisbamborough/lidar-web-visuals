@@ -7,8 +7,6 @@ import GUI from "lil-gui";
 // ---------- DOM ELEMENTS ----------
 const addrEl = document.getElementById("addr");
 const connectBtn = document.getElementById("connect");
-const stepEl = document.getElementById("step");
-const rangeEl = document.getElementById("range");
 const statsEl = document.getElementById("stats");
 const errEl = document.getElementById("err");
 const videoEl = document.getElementById("video");
@@ -20,13 +18,6 @@ let running = false;
 let animId;
 
 // ---------- THREE.JS SETUP ----------
-const renderer = new THREE.WebGLRenderer({ canvas: canvas3D, antialias: true });
-renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0b0e14);
-const camera = new THREE.PerspectiveCamera(60, 2, 0.01, 50);
-camera.position.set(0, 0, 1.5);
-
 // Orbit-style controls (lightweight)
 let phi = 0,
   theta = 0,
@@ -34,6 +25,20 @@ let phi = 0,
   dragging = false,
   lx = 0,
   ly = 0;
+
+const renderer = new THREE.WebGLRenderer({ canvas: canvas3D, antialias: true });
+renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b0e14);
+const camera = new THREE.PerspectiveCamera(60, 2, 0.01, 50);
+// Start at the origin, looking down -Z (LiDAR/iPhone camera perspective)
+camera.position.set(0, 0, 0);
+camera.lookAt(0, 0, -1);
+phi = 0;
+theta = Math.PI; // so orbit controls start facing -Z
+updateCamera();
+
+// Orbit-style controls (lightweight)
 canvas3D.addEventListener("wheel", (e) => {
   dist *= 1 + Math.sign(e.deltaY) * 0.1;
   e.preventDefault();
@@ -82,6 +87,16 @@ const gui = new GUI();
 gui.add(material, "size", 0.001, 0.05).name("Point Size");
 gui.addColor(material, "color").name("Tint");
 
+// Step and Depth controls in GUI
+const guiParams = {
+  step: 4,
+  depthRange: 3.0,
+};
+gui.add(guiParams, "step", 1, 16, 1).name("Step");
+gui.add(guiParams, "depthRange", 1, 10, 0.1).name("Depth [m]");
+
+// Only GUI controls are used for step and depth
+
 // ---------- IMAGE PROCESSING ----------
 const readCanvas = document.createElement("canvas");
 const readCtx = readCanvas.getContext("2d", { willReadFrequently: true });
@@ -109,8 +124,12 @@ function rgbToHsv(r, g, b) {
 }
 
 function processFrame() {
-  const step = Math.max(1, Math.min(16, Number(stepEl.value) || 4));
-  const depthRange = Math.max(0.5, Math.min(10, Number(rangeEl.value) || 3.0));
+  // Use only GUI values for step and depth
+  const step = Math.max(1, Math.min(16, Number(guiParams.step) || 4));
+  const depthRange = Math.max(
+    0.5,
+    Math.min(10, Number(guiParams.depthRange) || 3.0)
+  );
   const vw = videoEl.videoWidth,
     vh = videoEl.videoHeight;
   if (!vw || !vh) return;
@@ -141,9 +160,10 @@ function processFrame() {
       const X = ((x - cx) / fx) * z,
         Y = ((y - cy) / fy) * z,
         Z = z;
-      pos[j] = X;
+      // Rotate 90 degrees CCW around Y axis: (X, Y, Z) -> (Z, Y, -X)
+      pos[j] = Z;
       pos[j + 1] = -Y;
-      pos[j + 2] = -Z;
+      pos[j + 2] = -X;
       col[j] = r / 255;
       col[j + 1] = g / 255;
       col[j + 2] = b / 255;
@@ -178,7 +198,6 @@ async function connect() {
   try {
     if (running) return;
     running = true;
-    connectBtn.disabled = true;
     errEl.textContent = "";
     statsEl.textContent = "connecting...";
 

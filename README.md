@@ -1,62 +1,113 @@
-# LiDAR Web Visuals (Record3D → WebRTC → Three.js)
+bash
 
-Live, browser-based visuals using iPhone/iPad LiDAR via the **Record3D** app.  
-This repo uses **Vite** + **Three.js (ES Modules)** and a “sketch-per-folder” workflow for fast creative iterations.
+# LiDAR Web Visuals
 
-## ✨ What you can do
-
-- Connect directly to the iPhone’s **Wi-Fi WebRTC** stream (no server needed)
-- Decode **HSV-encoded depth** and render a **point cloud** with Three.js
-- Create a new visual by copying a sketch folder and editing `main.js`
+Browser-based, real-time LiDAR visualizations using iPhone/iPad Record3D, Three.js, and WebRTC. Fork or clone this repo to create your own interactive 3D LiDAR sketches, or to contribute new features and ideas.
 
 ---
 
-## 🧱 Project structure
+## 🚦 Getting Started
 
-lidar-web-visuals/
-├─ package.json
-├─ vite.config.js
-├─ public/
-│ └─ assets/ # optional shared assets
-└─ sketches/
-├─ lidar-basic/
-│ ├─ index.html
-│ ├─ main.js
-│ └─ style.css
-└─ <your-next-sketch>/
-├─ index.html
-├─ main.js
-└─ style.css
+### 1. Fork or Clone
 
-Each folder in `sketches/` is a self-contained “sketch” (like p5/Processing).
+Click "Fork" on GitHub, or clone locally:
 
----
+```bash
+git clone https://github.com/chrisbamborough/lidar-web-visuals.git
+cd lidar-web-visuals
+```
 
-## 🚀 Quick start
-
-1. **Install**
+### 2. Install Dependencies
 
 ```bash
 npm install
 ```
 
-2. Run the dev server
+### 3. Run the Dev Server
 
-bash
-Copy code
+```bash
 npm run dev
-Vite prints a URL (e.g. http://localhost:5173/).
+```
 
-Open a sketch
-Visit http://localhost:5173/sketches/lidar-basic/ (or any other sketch folder).
+Vite will print a local URL (e.g. http://localhost:5173/).
 
-On your iPhone/iPad
+### 4. Open a Sketch
 
-Open the Record3D app → Wi-Fi Streaming
+In your browser, go to:
 
-Turn the red toggle ON and leave the screen awake
+```
+http://localhost:5173/sketches/lidar-basic/
+```
 
-Note the IP, e.g. http://192.168.86.28
+or any other sketch folder in `/sketches/`.
+
+### 5. Connect Your iPhone/iPad (Record3D)
+
+1. Open the Record3D app → Wi-Fi Streaming
+2. Turn the red toggle ON and keep the screen awake
+3. Note the IP address (e.g. `http://192.168.86.28`)
+4. Enter this IP in the sketch UI and click Connect
+
+**Tip:** Both your computer and iOS device must be on the same Wi-Fi network.
+
+---
+
+## 🗂️ Project Structure
+
+- `sketches/` — Each folder is a self-contained sketch (like p5/Processing)
+- `src/` — Shared or main app code
+- `public/` — Static assets
+- `vite.config.js` — Vite config (multi-page, auto-indexes sketches)
+
+---
+
+## 🛠️ Creating Your Own Sketch
+
+1. Copy an existing sketch:
+   ```bash
+   cp -r sketches/lidar-basic sketches/my-new-sketch
+   ```
+2. Edit `main.js`, `index.html`, and `style.css` in your new folder
+3. Open `http://localhost:5173/sketches/my-new-sketch/` in your browser
+
+---
+
+## 🧑‍💻 Contributing
+
+Pull requests are welcome! Please:
+
+- Keep new sketches in their own folders under `/sketches/`
+- Use modern JavaScript (ES6 modules)
+- Prefer Three.js for 3D/point cloud rendering
+- Use GUI controls (lil-gui) for user-tweakable parameters
+- Keep UI minimal and focused on the visualization
+
+---
+
+## ℹ️ Troubleshooting
+
+- **No video/point cloud?**
+  - Make sure Record3D is streaming and the IP is correct
+  - Use `http://` (not `https://`) for both the page and the phone
+  - Only one browser/device can connect to Record3D at a time
+- **Performance issues?**
+  - Increase the "Step" value in the GUI to downsample
+  - For advanced users: move decoding/projection to GPU shaders
+- **IP changed?**
+  - Re-check the IP in Record3D and reconnect
+
+---
+
+## 📚 More Info
+
+- See [`copilot-instructions.md`](./copilot-instructions.md) for project conventions and Copilot guidance
+- See comments in each sketch's `main.js` for implementation details
+
+---
+
+## License
+
+MIT. See [LICENSE](./LICENSE).
 
 Connect from the sketch
 In the webpage input, enter the phone URL (e.g. http://192.168.86.28) and click Connect.
