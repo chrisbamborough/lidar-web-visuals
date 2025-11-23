@@ -1,6 +1,7 @@
 // LiDAR + Sound: Based on lidar-basic, with audio-reactive point cloud
 import * as THREE from "three";
 import GUI from "lil-gui";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
 // ---------- DOM ELEMENTS ----------
 const addrEl = document.getElementById("addr");
@@ -16,50 +17,21 @@ let running = false;
 let animId;
 
 // ---------- THREE.JS SETUP ----------
-let phi = 0,
-  theta = 0,
-  dist = 1.5,
-  dragging = false,
-  lx = 0,
-  ly = 0;
-
 const renderer = new THREE.WebGLRenderer({ canvas: canvas3D, antialias: true });
 renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0b0e14);
 const camera = new THREE.PerspectiveCamera(60, 2, 0.01, 50);
-camera.position.set(0, 0, 0);
-camera.lookAt(0, 0, -1);
-phi = 0;
-theta = Math.PI;
-updateCamera();
+camera.position.set(0, 0, 1.5); // Start a bit back for a better view
 
-canvas3D.addEventListener("wheel", (e) => {
-  dist *= 1 + Math.sign(e.deltaY) * 0.1;
-  e.preventDefault();
-});
-canvas3D.addEventListener("mousedown", (e) => {
-  dragging = true;
-  lx = e.clientX;
-  ly = e.clientY;
-});
-window.addEventListener("mouseup", () => (dragging = false));
-window.addEventListener("mousemove", (e) => {
-  if (!dragging) return;
-  theta += (e.clientX - lx) * 0.005;
-  phi += (e.clientY - ly) * 0.005;
-  lx = e.clientX;
-  ly = e.clientY;
-});
-function updateCamera() {
-  const y = Math.max(-Math.PI / 2 + 0.001, Math.min(Math.PI / 2 - 0.001, phi));
-  camera.position.set(
-    Math.cos(theta) * Math.cos(y) * dist,
-    Math.sin(y) * dist,
-    Math.sin(theta) * Math.cos(y) * dist
-  );
-  camera.lookAt(0, 0, 0);
-}
+// Add OrbitControls
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0, 0);
+controls.enableDamping = true; // Smooth camera motion
+controls.dampingFactor = 0.05;
+controls.minDistance = 0.5;
+controls.maxDistance = 10;
+
 function resize() {
   const w = canvas3D.clientWidth,
     h = canvas3D.clientHeight;
@@ -196,7 +168,7 @@ let lastT = performance.now(),
   frames = 0;
 function renderLoop() {
   resize();
-  updateCamera();
+  controls.update(); // Add this line
   processFrame();
   renderer.render(scene, camera);
   frames++;
