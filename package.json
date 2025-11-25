@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sketch": "SKETCH=$npm_config_name vite"
   },
   "devDependencies": {
     "vite": "^7.2.2"
