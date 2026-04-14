@@ -21,5 +21,15 @@ if (
 export default defineConfig({
   root: ".",
   build: { rollupOptions: { input: Object.fromEntries(sketches) } },
-  server: { open: openPath, port: 5173 },
+  server: {
+    open: openPath,
+    port: 5173,
+    proxy: {
+      "/webrtc": {
+        target: "http://192.168.86.26",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/webrtc/, ""),
+      },
+    },
+  },
 });

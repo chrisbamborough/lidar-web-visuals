@@ -148,7 +148,7 @@ async function connect() {
     audioReady = true;
 
     await connectIphoneLidar({
-      serverAddress: "http://192.168.86.28", // Always use this address
+      serverAddress: "http://192.168.86.26", // Always use this address
       videoEl,
       statsEl,
       errEl,

@@ -1,6 +1,4 @@
-// src/main.js
-// Record3D → WebRTC → decode HSV depth → render point cloud in Three.js
-
+// Depth-colored LiDAR point cloud
 import * as THREE from "three";
 import GUI from "lil-gui";
 
@@ -18,9 +16,8 @@ let running = false;
 let animId;
 
 // ---------- THREE.JS SETUP ----------
-// Orbit-style controls (lightweight)
 let phi = 0,
-  theta = 0,
+  theta = Math.PI,
   dist = 1.5,
   dragging = false,
   lx = 0,
@@ -31,14 +28,9 @@ renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0b0e14);
 const camera = new THREE.PerspectiveCamera(60, 2, 0.01, 50);
-// Start at the origin, looking down -Z (LiDAR/iPhone camera perspective)
 camera.position.set(0, 0, 0);
 camera.lookAt(0, 0, -1);
-phi = 0;
-theta = Math.PI; // so orbit controls start facing -Z
-updateCamera();
 
-// Orbit-style controls (lightweight)
 canvas3D.addEventListener("wheel", (e) => {
   dist *= 1 + Math.sign(e.deltaY) * 0.1;
   e.preventDefault();
@@ -78,24 +70,36 @@ window.addEventListener("resize", resize);
 
 // Geometry for point cloud
 let geom = new THREE.BufferGeometry();
-let material = new THREE.PointsMaterial({ size: 0.01, vertexColors: true });
+let material = new THREE.PointsMaterial({
+  size: 0.012,
+  vertexColors: true,
+  transparent: true,
+  opacity: 0.95,
+  sizeAttenuation: true,
+  blending: THREE.AdditiveBlending,
+});
 let points = new THREE.Points(geom, material);
 scene.add(points);
 
 // GUI controls
-const gui = new GUI();
-gui.add(material, "size", 0.001, 0.05).name("Point Size");
-gui.addColor(material, "color").name("Tint");
-
-// Step and Depth controls in GUI
 const guiParams = {
   step: 4,
   depthRange: 3.0,
+  pointSize: 0.012,
+  nearColor: "#ff9d00", // warm near
+  farColor: "#2e6cff", // cool far
 };
+const gui = new GUI();
 gui.add(guiParams, "step", 1, 16, 1).name("Step");
 gui.add(guiParams, "depthRange", 1, 10, 0.1).name("Depth [m]");
-
-// Only GUI controls are used for step and depth
+gui
+  .add(guiParams, "pointSize", 0.004, 0.06, 0.001)
+  .name("Point Size")
+  .onChange((v) => {
+    material.size = v;
+  });
+gui.addColor(guiParams, "nearColor").name("Near Color");
+gui.addColor(guiParams, "farColor").name("Far Color");
 
 // ---------- IMAGE PROCESSING ----------
 const readCanvas = document.createElement("canvas");
@@ -110,13 +114,9 @@ function rgbToHsv(r, g, b) {
   const d = max - min;
   let h = 0;
   if (d !== 0) {
-    if (max === r) {
-      h = ((g - b) / d) % 6;
-    } else if (max === g) {
-      h = (b - r) / d + 2;
-    } else {
-      h = (r - g) / d + 4;
-    }
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
     h /= 6;
   }
   if (h < 0) h += 1;
@@ -124,12 +124,12 @@ function rgbToHsv(r, g, b) {
 }
 
 function processFrame() {
-  // Use only GUI values for step and depth
   const step = Math.max(1, Math.min(16, Number(guiParams.step) || 4));
   const depthRange = Math.max(
     0.5,
     Math.min(10, Number(guiParams.depthRange) || 3.0)
   );
+
   const vw = videoEl.videoWidth,
     vh = videoEl.videoHeight;
   if (!vw || !vh) return;
@@ -147,29 +147,38 @@ function processFrame() {
   const N = Math.ceil(vh / step) * Math.ceil(half / step);
   const pos = new Float32Array(N * 3);
   const col = new Float32Array(N * 3);
+  const near = new THREE.Color(guiParams.nearColor);
+  const far = new THREE.Color(guiParams.farColor);
+
   let j = 0;
   for (let y = 0; y < vh; y += step) {
     for (let x = 0; x < half; x += step) {
       const di = (y * vw + x) * 4;
       const [h] = rgbToHsv(img[di], img[di + 1], img[di + 2]);
-      const z = h * depthRange;
-      const ri = (y * vw + (x + half)) * 4;
-      const r = img[ri],
-        g = img[ri + 1],
-        b = img[ri + 2];
-      const X = ((x - cx) / fx) * z,
-        Y = ((y - cy) / fy) * z,
-        Z = z;
-      // Rotate 90 degrees CCW around Y axis: (X, Y, Z) -> (Z, Y, -X)
+      const z = h * depthRange; // meters (approx)
+
+      // Sample the right half for color is not needed; we color by depth
+      // Project to camera space
+      const X = ((x - cx) / fx) * z;
+      const Y = ((y - cy) / fy) * z;
+      const Z = z;
+
+      // Rotate 90° CCW around Y: (X,Y,Z) -> (Z, Y, -X)
       pos[j] = Z;
       pos[j + 1] = -Y;
       pos[j + 2] = -X;
-      col[j] = r / 255;
-      col[j + 1] = g / 255;
-      col[j + 2] = b / 255;
+
+      // Depth-based color: t=0 near, t=1 far
+      const t = Math.max(0, Math.min(1, z / depthRange));
+      const c = new THREE.Color().copy(near).lerp(far, t);
+      col[j] = c.r;
+      col[j + 1] = c.g;
+      col[j + 2] = c.b;
+
       j += 3;
     }
   }
+
   geom.setAttribute("position", new THREE.BufferAttribute(pos.slice(0, j), 3));
   geom.setAttribute("color", new THREE.BufferAttribute(col.slice(0, j), 3));
   geom.computeBoundingSphere();
@@ -200,12 +209,12 @@ async function connect() {
     running = true;
     errEl.textContent = "";
     statsEl.textContent = "connecting...";
+
     let input = addrEl.value.trim();
     let useProxy = false;
     let server = "";
     if (!input) {
-      // Use dev proxy namespace when address is blank
-      useProxy = true;
+      useProxy = true; // dev proxy
     } else {
       server = input;
       if (!server.startsWith("http")) server = "http://" + server;
@@ -222,31 +231,26 @@ async function connect() {
     };
 
     const base = useProxy ? "/webrtc" : server;
+
     const metaResp = await fetch(base + "/metadata");
-    if (!metaResp.ok) {
+    if (!metaResp.ok)
       throw new Error(`metadata ${metaResp.status} ${metaResp.statusText}`);
-    }
     const meta = await metaResp.json().catch(() => {
-      throw new Error(
-        "metadata response is not JSON; check server/proxy route"
-      );
+      throw new Error("metadata is not JSON");
     });
     console.log("metadata", meta);
 
     const offerResp = await fetch(base + "/getOffer");
-    if (!offerResp.ok) {
+    if (!offerResp.ok)
       throw new Error(`getOffer ${offerResp.status} ${offerResp.statusText}`);
-    }
     const offer = await offerResp.json().catch(() => {
-      throw new Error(
-        "getOffer response is not JSON; check server/proxy route"
-      );
+      throw new Error("getOffer is not JSON");
     });
+
     await pc.setRemoteDescription(offer);
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
 
-    // wait for ICE gathering complete
     await new Promise((res) => {
       if (pc.iceGatheringState === "complete") return res();
       const check = () => {
@@ -264,9 +268,8 @@ async function connect() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: "answer", data: pc.localDescription.sdp }),
     });
-    if (!answerResp.ok) {
+    if (!answerResp.ok)
       throw new Error(`answer ${answerResp.status} ${answerResp.statusText}`);
-    }
 
     cancelAnimationFrame(animId);
     renderLoop();
