@@ -2,7 +2,11 @@
 
 ## Sketches Are First-Class
 
-Each visualization lives as a self-contained sketch under `sketches/<name>/`. A sketch should include its own `index.html`, `main.js`, and style entry point.
+Each visualization lives as a self-contained sketch under `sketches/<name>/`. A sketch should include its own `index.html`, `main.js`, and `style.css`.
+
+## This Repository Is Not The App
+
+The dedicated LiDAR Studio app now lives outside this repository. This project remains a sketch playground for experiments, prototypes, and shared helper code.
 
 ## Default Sketch
 

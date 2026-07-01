@@ -1,4 +1,4 @@
-// src/main.js
+// sketches/lidar-basic/main.js
 // Record3D → WebRTC → decode HSV depth → render point cloud in Three.js
 
 import * as THREE from "three";

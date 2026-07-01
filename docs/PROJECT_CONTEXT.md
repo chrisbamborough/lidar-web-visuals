@@ -2,13 +2,13 @@
 
 ## Purpose
 
-LiDAR Web Visuals is a browser-based creative coding project for visualizing iPhone/iPad Record3D LiDAR streams in real time. It uses Vite, WebRTC, Three.js, and `lil-gui` to turn Record3D video/depth data into interactive point cloud sketches.
+LiDAR Web Visuals is a browser-based creative coding playground for visualizing iPhone/iPad Record3D LiDAR streams in real time. It uses Vite, WebRTC, Three.js, and `lil-gui` to turn Record3D video/depth data into independent point cloud sketches.
 
-The current repository is a sketch playground rather than a single polished product. Each sketch is expected to be independently runnable from its own folder under `sketches/`.
+This repository is not the dedicated LiDAR Studio app. It is now focused on sketches, experiments, and shared helper modules.
 
 ## Current Implementation
 
-The app is configured as a Vite multi-page project. `vite.config.js` scans `sketches/` for folders that contain `index.html` and adds each sketch as a Rollup input. The default dev server page is `sketches/lidar-basic/index.html`.
+The project is configured as a Vite multi-page sketch workspace. `vite.config.js` scans `sketches/` for folders that contain `index.html` and adds each sketch as a Rollup input. The default dev server page is `sketches/lidar-basic/index.html`.
 
 Primary runtime dependencies:
 
@@ -36,19 +36,19 @@ The current point cloud path reads pixels from a hidden video element by drawing
 Depth is approximated as:
 
 ```js
-z = hue * depthRange
+z = hue * depthRange;
 ```
 
 Points are downsampled using a configurable `step` value. Approximate camera intrinsics are derived from the video dimensions inside each sketch:
 
 ```js
-fx = halfWidth
-fy = videoHeight
-cx = halfWidth * 0.5
-cy = videoHeight * 0.5
+fx = halfWidth;
+fy = videoHeight;
+cx = halfWidth * 0.5;
+cy = videoHeight * 0.5;
 ```
 
-The project does not currently use Record3D binary depth/data-channel parsing, even though that is mentioned in the roadmap.
+The project does not currently use Record3D binary depth/data-channel parsing, even though that remains an aspirational roadmap item.
 
 ## Sketches
 
@@ -89,12 +89,10 @@ Sets up microphone capture and an `AnalyserNode`, plus a helper to estimate aver
 ## Current Rough Edges
 
 - `lidar-basic` and `lidar-depth` duplicate WebRTC, camera, HSV conversion, and frame-processing logic instead of using `lib/`.
-- Record3D IP addresses are hardcoded in a few places, including the Vite proxy and `lidar-simplePoints`.
+- Record3D IP addresses are hardcoded in a few places, including the Vite proxy and some sketch UI placeholders.
 - Point cloud orientation is not fully standardized across sketches.
-- Audio setup exists, but the main visual sketches are not meaningfully audio-reactive yet.
-- `src/` still contains some older/default app structure and duplicated code.
-- `README.md` references a `LICENSE` file, but no `LICENSE` file is currently present.
+- Audio setup exists, but the sketches are not meaningfully audio-reactive yet.
 
 ## Working-Code Boundary
 
-When returning to this repo, assume the existing sketches are working experiments. Prefer documentation, new sketches, or clearly scoped refactors unless the user asks to change behavior. If implementation changes are requested, preserve the current `lidar-basic` flow unless the task explicitly says otherwise.
+Assume the existing sketches are working experiments. Prefer new sketches, documentation, or clearly scoped refactors unless the user asks to change existing sketch behavior. If implementation changes are requested, preserve the current `lidar-basic` flow unless the task explicitly says otherwise.
